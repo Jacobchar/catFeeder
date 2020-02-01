@@ -1,2 +1,3 @@
 # catFeeder
-Generic code to put an old arduino to use
+Generic code to put an old arduino to use. Time to start doing projects
+
