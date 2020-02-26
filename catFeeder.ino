@@ -205,12 +205,12 @@ void updateRotations(uint8_t rotations)
 
 bool checkAlarm(DateTime now, DateTime alarmTime)
 {
-  return ((now.hour() == alarmTime.hour()) && (now.minute() == alarmTime.minute()) && (now.second() > alarmTime.second()))
+  return ((now.hour() == alarmTime.hour()) && (now.minute() == alarmTime.minute()) && (now.second() > alarmTime.second()));
 }
 
 bool clearAlarm(DateTime now, DateTime alarmTime)
 {
-  return ((now.hour() == alarmTime.hour()) && (now.minute() > alarmTime.minute()) && (now.second() == alarmTime.second()))
+  return ((now.hour() == alarmTime.hour()) && (now.minute() > alarmTime.minute()) && (now.second() == alarmTime.second()));
 }
 
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
@@ -259,7 +259,7 @@ void loop()
     catsFedEvening = true;
   }
 
-  // Having a delay seems to help the system not get bogged down. Since the time is much less than one minute though we should not skip the alarm
+  // Having a delay seems to help the system not get bogged down. Since the time is much less than one second though we should not skip the alarm
   delay(250);
 
   // Only clear the fed boolean once a minute has elapsed
