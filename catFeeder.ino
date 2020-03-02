@@ -137,6 +137,9 @@ void setup()
 
   setupTFT();
 
+  // Disable the A4988 chip
+  digitalWrite(STEPPER_MOTOR_ENABLE_PIN, HIGH);
+
   catsFedMorning_ = true;
   catsFedEvening_ = true;
 }
@@ -238,16 +241,21 @@ void loop()
   // Read the current time
   DateTime now = rtcPCF.now();
 
-  // Three states of the count down timer 
+  // Three states of the count down timer
   DateTime countDownTime{};
   // Midnight to 6 am
-  if(!catsFedMorning_ && !catsFedEvening_){
+  if (!catsFedMorning_ && !catsFedEvening_)
+  {
     countDownTime = {2000U, 1U, 1U, (morningFeedingTime.hour() - now.hour()), (morningFeedingTime.minute() - now.minute()), 0U};
-  // 6 am to 5:30 pm
-  } else if (catsFedMorning_ && !catsFedEvening_) {
+    // 6 am to 5:30 pm
+  }
+  else if (catsFedMorning_ && !catsFedEvening_)
+  {
     countDownTime = {2000U, 1U, 1U, (eveningFeedingTime.hour() - now.hour()), (eveningFeedingTime.minute() - now.minute()), 0U};
-  // 5:30 pm to midnight
-  } else if (catsFedEvening_) {
+    // 5:30 pm to midnight
+  }
+  else if (catsFedEvening_)
+  {
     countDownTime = {2000U, 1U, 1U, (24U - now.hour() + morningFeedingTime.hour()), (60U - now.minute() + morningFeedingTime.minute()), 0U};
   }
 
