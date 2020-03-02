@@ -32,7 +32,7 @@ const int STEPS_PER_QUARTER_REV = STEPS_PER_REV / 4;
 // LCD
 #define cs 10
 #define dc 9
-#define rst 12
+#define rst 0
 
 // Global variables and defines
 // Object initialization
@@ -45,11 +45,13 @@ RTC_PCF8523 rtcPCF;
 // Create an instance of the library
 TFT TFTscreen = TFT(cs, dc, rst);
 
-// Feeding times
-DateTime morningFeedingTime{2000, 1, 1, 6, 0, 0};
-DateTime eveningFeedingTime{2000, 1, 1, 16, 30, 0};
-static bool catsFedMorning = false;
-static bool catsFedEvening = false;
+// Feeding times NOTE: For the homebrew alarms we only care about the hour/
+// minute times
+DateTime morningFeedingTime{2000U, 1U, 1U, 6U, 0U, 0U};
+DateTime eveningFeedingTime{2000U, 1U, 1U, 17U, 6U, 0U};
+DateTime midnight{2000U, 1U, 1U, 0U, 0U, 0U};
+static bool catsFedMorning_ = false;
+static bool catsFedEvening_ = false;
 
 // Rotations Global
 static uint8_t numRotations_ = 1U;
@@ -134,6 +136,9 @@ void setup()
   }
 
   setupTFT();
+
+  catsFedMorning_ = true;
+  catsFedEvening_ = true;
 }
 
 void rotateStepperMotor(uint8_t numRotations_)
@@ -215,15 +220,13 @@ void updateRotations(uint8_t rotations)
 bool checkAlarm(DateTime now, DateTime alarmTime)
 {
   return ((now.hour() == alarmTime.hour()) &&
-          (now.minute() == alarmTime.minute()) &&
-          (now.second() > alarmTime.second()));
+          (now.minute() == alarmTime.minute()));
 }
 
 bool clearAlarm(DateTime now, DateTime alarmTime)
 {
   return ((now.hour() == alarmTime.hour()) &&
-          (now.minute() > alarmTime.minute()) &&
-          (now.second() == alarmTime.second()));
+          (now.minute() > alarmTime.minute()));
 }
 
 // After setup, it runs over and over again, in an eternal loop.
@@ -235,7 +238,20 @@ void loop()
   // Read the current time
   DateTime now = rtcPCF.now();
 
-  updateTimeOnScreen(prevTime, now);
+  // Three states of the count down timer 
+  DateTime countDownTime{};
+  // Midnight to 6 am
+  if(!catsFedMorning_ && !catsFedEvening_){
+    countDownTime = {2000U, 1U, 1U, (morningFeedingTime.hour() - now.hour()), (morningFeedingTime.minute() - now.minute()), 0U};
+  // 6 am to 5:30 pm
+  } else if (catsFedMorning_ && !catsFedEvening_) {
+    countDownTime = {2000U, 1U, 1U, (eveningFeedingTime.hour() - now.hour()), (eveningFeedingTime.minute() - now.minute()), 0U};
+  // 5:30 pm to midnight
+  } else if (catsFedEvening_) {
+    countDownTime = {2000U, 1U, 1U, (24U - now.hour() + morningFeedingTime.hour()), (60U - now.minute() + morningFeedingTime.minute()), 0U};
+  }
+
+  updateTimeOnScreen(prevTime, countDownTime);
 
   // Increment the amount of rotations
   if (addRotation.onPress())
@@ -263,19 +279,19 @@ void loop()
   }
 
   // Alarm check - morning
-  if (!catsFedMorning && checkAlarm(now, morningFeedingTime))
+  if (!catsFedMorning_ && checkAlarm(now, morningFeedingTime))
   {
     // Feed the cats
     rotateStepperMotor(numRotations_);
-    catsFedMorning = true;
+    catsFedMorning_ = true;
   }
 
   // Alarm check - evening
-  if (!catsFedEvening && checkAlarm(now, eveningFeedingTime))
+  if (!catsFedEvening_ && checkAlarm(now, eveningFeedingTime))
   {
     // Feed the cats
     rotateStepperMotor(numRotations_);
-    catsFedEvening = true;
+    catsFedEvening_ = true;
   }
 
   // Having a delay seems to help the system not get bogged down. Since the time
@@ -283,16 +299,16 @@ void loop()
   delay(250);
 
   // Only clear the fed boolean once a minute has elapsed
-  if (catsFedMorning && clearAlarm(now, morningFeedingTime))
+  if (catsFedMorning_ && checkAlarm(now, midnight))
   {
-    catsFedMorning = false;
+    catsFedMorning_ = false;
   }
 
-  if (catsFedEvening && clearAlarm(now, eveningFeedingTime))
+  if (catsFedEvening_ && checkAlarm(now, midnight))
   {
-    catsFedEvening = false;
+    catsFedEvening_ = false;
   }
 
   // Update old time
-  prevTime = now;
+  prevTime = countDownTime;
 }
