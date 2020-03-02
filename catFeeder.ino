@@ -277,6 +277,7 @@ void loop() {
 
   // Wakeup/Sleep the TFT screen
   if (sleepScreen.onPress()) {
+    // This button is currently on th esame line as the feedNow button
   }
 
   // Alarm check - morning
