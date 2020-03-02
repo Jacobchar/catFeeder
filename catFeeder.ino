@@ -47,11 +47,8 @@ TFT TFTscreen = TFT(cs, dc, rst);
 
 // Feeding times NOTE: For the homebrew alarms we only care about the hour/
 // minute times
-DateTime morningFeedingTime{2000U, 1U, 1U, 6U, 0U, 0U};
-DateTime eveningFeedingTime{2000U, 1U, 1U, 17U, 6U, 0U};
-DateTime midnight{2000U, 1U, 1U, 0U, 0U, 0U};
-static bool catsFedMorning_ = false;
-static bool catsFedEvening_ = false;
+DateTime feedingTime{2000U, 1U, 1U, 6U, 0U, 0U};
+static bool jakeFed = false;
 
 // Rotations Global
 static uint8_t numRotations_ = 1U;
@@ -137,8 +134,8 @@ void setup()
 
   setupTFT();
 
-  catsFedMorning_ = true;
-  catsFedEvening_ = true;
+  // Disable the A4988 chip
+  digitalWrite(STEPPER_MOTOR_ENABLE_PIN, HIGH);
 }
 
 void rotateStepperMotor(uint8_t numRotations_)
@@ -238,18 +235,8 @@ void loop()
   // Read the current time
   DateTime now = rtcPCF.now();
 
-  // Three states of the count down timer 
-  DateTime countDownTime{};
-  // Midnight to 6 am
-  if(!catsFedMorning_ && !catsFedEvening_){
-    countDownTime = {2000U, 1U, 1U, (morningFeedingTime.hour() - now.hour()), (morningFeedingTime.minute() - now.minute()), 0U};
-  // 6 am to 5:30 pm
-  } else if (catsFedMorning_ && !catsFedEvening_) {
-    countDownTime = {2000U, 1U, 1U, (eveningFeedingTime.hour() - now.hour()), (eveningFeedingTime.minute() - now.minute()), 0U};
-  // 5:30 pm to midnight
-  } else if (catsFedEvening_) {
-    countDownTime = {2000U, 1U, 1U, (24U - now.hour() + morningFeedingTime.hour()), (60U - now.minute() + morningFeedingTime.minute()), 0U};
-  }
+  // Three states of the count down timer
+  DateTime countDownTime{2000U, 1U, 1U, 0U, (60U - now.minute()), 0U};
 
   updateTimeOnScreen(prevTime, countDownTime);
 
@@ -279,19 +266,11 @@ void loop()
   }
 
   // Alarm check - morning
-  if (!catsFedMorning_ && checkAlarm(now, morningFeedingTime))
+  if (!jakeFed && checkAlarm(now, feedingTime))
   {
     // Feed the cats
     rotateStepperMotor(numRotations_);
-    catsFedMorning_ = true;
-  }
-
-  // Alarm check - evening
-  if (!catsFedEvening_ && checkAlarm(now, eveningFeedingTime))
-  {
-    // Feed the cats
-    rotateStepperMotor(numRotations_);
-    catsFedEvening_ = true;
+    jakeFed = true;
   }
 
   // Having a delay seems to help the system not get bogged down. Since the time
@@ -299,14 +278,9 @@ void loop()
   delay(250);
 
   // Only clear the fed boolean once a minute has elapsed
-  if (catsFedMorning_ && checkAlarm(now, midnight))
+  if (jakeFed && clearAlarm(now, feedingTime))
   {
-    catsFedMorning_ = false;
-  }
-
-  if (catsFedEvening_ && checkAlarm(now, midnight))
-  {
-    catsFedEvening_ = false;
+    jakeFed = false;
   }
 
   // Update old time
