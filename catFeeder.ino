@@ -131,11 +131,13 @@ void setup() {
 
   setupTFT();
 
+  // Setup the stepper pins as outputs
+  pinMode(STEPPER_MOTOR_STEP_PIN, OUTPUT);
+  pinMode(STEPPER_MOTOR_DIR_PIN, OUTPUT);
+  pinMode(STEPPER_MOTOR_ENABLE_PIN, OUTPUT);
+
   // Disable the A4988 chip
   digitalWrite(STEPPER_MOTOR_ENABLE_PIN, HIGH);
-
-  catsFedMorning_ = true;
-  catsFedEvening_ = true;
 }
 
 void rotateStepperMotor(uint8_t numRotations_) {
