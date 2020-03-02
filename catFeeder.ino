@@ -296,7 +296,7 @@ void loop() {
 
   // Having a delay seems to help the system not get bogged down. Since the time
   // is much less than one second though we should not skip the alarm
-  delay(250);
+  delay(100);
 
   // Only clear the fed boolean once a minute has elapsed
   if (catsFedMorning_ && checkAlarm(now, midnight)) {
