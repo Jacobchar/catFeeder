@@ -74,7 +74,7 @@ void setupTFT() {
   TFTscreen.text("1/4 Rot. Per Serv: ", 0, ROTATION_TEXT_HEIGHT);
 
   // Print an initial rotation number of 0
-  TFTscreen.text("01", ROTATION_TEXT_OFFSET, ROTATION_TEXT_HEIGHT);
+  TFTscreen.text("08", ROTATION_TEXT_OFFSET, ROTATION_TEXT_HEIGHT);
 
   // Print the initial time to the screen
   DateTime now = rtcPCF.now();
