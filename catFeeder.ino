@@ -51,11 +51,11 @@ DateTime feedingTime{2000U, 1U, 1U, 6U, 0U, 0U};
 static bool jakeFed = false;
 
 // Rotations Global
-static uint8_t numRotations_ = 1U;
+static uint8_t numRotations_ = 8U;
 static const uint8_t MAX_ROTATIONS = 40U;
 
-void setupTFT()
-{
+void setupTFT() {
+
   // Initialize the library
   TFTscreen.begin();
 
@@ -72,7 +72,7 @@ void setupTFT()
   TFTscreen.text("1/4 Rot. Per Serv: ", 0, ROTATION_TEXT_HEIGHT);
 
   // Print an initial rotation number of 0
-  TFTscreen.text("01", ROTATION_TEXT_OFFSET, ROTATION_TEXT_HEIGHT);
+  TFTscreen.text("08", ROTATION_TEXT_OFFSET, ROTATION_TEXT_HEIGHT);
 
   // Print the initial time to the screen
   DateTime now = rtcPCF.now();
@@ -84,8 +84,7 @@ void setupTFT()
 
 // Setup the essentials for your circuit to work. It runs first every time your
 // circuit is powered with electricity.
-void setup()
-{
+void setup() {
   // Setup Serial which is useful for debugging
   // Use the Serial Monitor to view printed messages
   Serial.begin(9600);
@@ -99,23 +98,19 @@ void setup()
   feedNow.init();
   sleepScreen.init();
 
-  if (!rtcPCF.begin())
-  {
+  if (!rtcPCF.begin()) {
     Serial.println("Couldn't find RTC");
     while (1)
       ;
   }
-  if (!rtcPCF.initialized())
-  {
+  if (!rtcPCF.initialized()) {
     Serial.println("RTC lost power, lets set the time!");
     // following line sets the RTC to the date & time this sketch was compiled
     rtcPCF.adjust(DateTime(F(__DATE__), F(__TIME__)));
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
     // rtcPCF.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
-  else
-  {
+  } else {
     DateTime now = rtcPCF.now();
     Serial.print("The Current Time is: ");
     Serial.print(now.month(), DEC);
@@ -132,14 +127,20 @@ void setup()
     Serial.println();
   }
 
+  rtcPCF.adjust({2020, 3U, 2U, 16U, 48U, 0U});
+
   setupTFT();
+
+  // Setup the stepper pins as outputs
+  pinMode(STEPPER_MOTOR_STEP_PIN, OUTPUT);
+  pinMode(STEPPER_MOTOR_DIR_PIN, OUTPUT);
+  pinMode(STEPPER_MOTOR_ENABLE_PIN, OUTPUT);
 
   // Disable the A4988 chip
   digitalWrite(STEPPER_MOTOR_ENABLE_PIN, HIGH);
 }
 
-void rotateStepperMotor(uint8_t numRotations_)
-{
+void rotateStepperMotor(uint8_t numRotations_) {
   // Set motor direction clockwise
   digitalWrite(STEPPER_MOTOR_DIR_PIN, HIGH);
 
@@ -147,8 +148,7 @@ void rotateStepperMotor(uint8_t numRotations_)
   digitalWrite(STEPPER_MOTOR_ENABLE_PIN, LOW);
 
   // Spin motor one rotation
-  for (int x = 0; x < (STEPS_PER_QUARTER_REV * numRotations_); x++)
-  {
+  for (int x = 0; x < (STEPS_PER_QUARTER_REV * numRotations_); x++) {
     digitalWrite(STEPPER_MOTOR_STEP_PIN, HIGH);
     delayMicroseconds(2000);
     digitalWrite(STEPPER_MOTOR_STEP_PIN, LOW);
@@ -159,15 +159,13 @@ void rotateStepperMotor(uint8_t numRotations_)
   digitalWrite(STEPPER_MOTOR_ENABLE_PIN, HIGH);
 }
 
-void updateTimeOnScreen(DateTime prevTime, DateTime now)
-{
+void updateTimeOnScreen(DateTime prevTime, DateTime now) {
   // Character array for time
   char timeString[4];
 
   // Compare the previous time to the current time to determine if the time
   // needs to be updated
-  if (prevTime.hour() != now.hour())
-  {
+  if (prevTime.hour() != now.hour()) {
     // Update hour
     TFTscreen.setTextSize(TIME_TEXT_SIZE);
     // First clear old hour
@@ -180,8 +178,7 @@ void updateTimeOnScreen(DateTime prevTime, DateTime now)
     TFTscreen.stroke(255, 255, 255);
     TFTscreen.text(timeString, HOUR_TEXT_OFFSET, TIME_TEXT_HEIGHT);
   }
-  if (prevTime.minute() != now.minute())
-  {
+  if (prevTime.minute() != now.minute()) {
     // Update minute
     TFTscreen.setTextSize(TIME_TEXT_SIZE);
     // First clear old minute
@@ -196,8 +193,7 @@ void updateTimeOnScreen(DateTime prevTime, DateTime now)
   }
 }
 
-void updateRotations(uint8_t rotations)
-{
+void updateRotations(uint8_t rotations) {
   char numRotationString[4];
 
   // Erase the current number of rotations
@@ -214,21 +210,18 @@ void updateRotations(uint8_t rotations)
   TFTscreen.text(numRotationString, ROTATION_TEXT_OFFSET, ROTATION_TEXT_HEIGHT);
 }
 
-bool checkAlarm(DateTime now, DateTime alarmTime)
-{
+bool checkAlarm(DateTime now, DateTime alarmTime) {
   return ((now.hour() == alarmTime.hour()) &&
           (now.minute() == alarmTime.minute()));
 }
 
-bool clearAlarm(DateTime now, DateTime alarmTime)
-{
+bool clearAlarm(DateTime now, DateTime alarmTime) {
   return ((now.hour() == alarmTime.hour()) &&
           (now.minute() > alarmTime.minute()));
 }
 
 // After setup, it runs over and over again, in an eternal loop.
-void loop()
-{
+void loop() {
   // Get an initial reading and use this variable to store the previous time
   static DateTime prevTime = rtcPCF.now();
 
@@ -236,38 +229,34 @@ void loop()
   DateTime now = rtcPCF.now();
 
   // Three states of the count down timer
-  DateTime countDownTime{2000U, 1U, 1U, 0U, (60U - now.minute()), 0U};
+  DateTime countDownTime{2000U, 1U, 1U, 0U, (59U - now.minute()), 0U};
 
   updateTimeOnScreen(prevTime, countDownTime);
 
   // Increment the amount of rotations
-  if (addRotation.onPress())
-  {
+  if (addRotation.onPress()) {
     updateRotations(numRotations_ == MAX_ROTATIONS ? MAX_ROTATIONS
                                                    : (numRotations_ + 1));
   }
 
   // Decrement the number of rotations
-  if (decrementRotation.onPress())
-  {
+  if (decrementRotation.onPress()) {
     updateRotations(numRotations_ == 1U ? 1U : (numRotations_ - 1));
   }
 
   // Rotate the servo when button pressed
-  if (feedNow.onPress())
-  {
+  if (feedNow.onPress()) {
     // Feed the cats immediately
     rotateStepperMotor(numRotations_);
   }
 
   // Wakeup/Sleep the TFT screen
-  if (sleepScreen.onPress())
-  {
+  if (sleepScreen.onPress()) {
+    // This button is currently on th esame line as the feedNow button
   }
 
   // Alarm check - morning
-  if (!jakeFed && checkAlarm(now, feedingTime))
-  {
+  if (!jakeFed && checkAlarm(now, feedingTime)) {
     // Feed the cats
     rotateStepperMotor(numRotations_);
     jakeFed = true;
@@ -275,11 +264,10 @@ void loop()
 
   // Having a delay seems to help the system not get bogged down. Since the time
   // is much less than one second though we should not skip the alarm
-  delay(250);
+  delay(100);
 
   // Only clear the fed boolean once a minute has elapsed
-  if (jakeFed && clearAlarm(now, feedingTime))
-  {
+  if (jakeFed && clearAlarm(now, feedingTime)) {
     jakeFed = false;
   }
 
